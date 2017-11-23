@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Game :width="400" :height="400" />
+    <Game :width="width" :height="height" />
   </div>
 </template>
 
@@ -16,7 +16,8 @@ export default {
   },
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App'
+      width: document.documentElement.clientWidth,
+      height: document.documentElement.clientHeight
     }
   }
 }
