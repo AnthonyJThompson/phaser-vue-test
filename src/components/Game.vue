@@ -7,7 +7,13 @@
   import 'pixi'
   import 'p2'
   import Phaser from 'phaser'
-  /* eslint-enable no-unused-vars */
+  var ruinTileset = require('../assets/classical_ruin_tiles.png')
+  console.log(ruinTileset)
+  var ruinTilemap = require('../assets/tester.csv')
+  console.log(ruinTilemap)
+  var map
+  var layer
+/* eslint-enable no-unused-vars */
   var Game = {}
 
   Game.Boot = function (game) { }
@@ -20,6 +26,7 @@
       this.stage.disableVisibiliyChange = true
     },
     preload: function () {
+      console.log('boot')
       // TODO: add loading bar
     },
     create: function () {
@@ -29,8 +36,11 @@
 
   Game.Preloader.prototype = {
     preload: function () {
+      console.log('preload')
       this.time.advancedTiming = true
       // TODO: load assets
+      this.load.image('ruinTileset', ruinTileset)
+      this.load.tilemap('ruinTilemap', '../assets/tester.csv', null, Phaser.Tilemap.CSV)
     },
     create: function () {
       this.state.start('MainGame')
@@ -39,7 +49,12 @@
 
   Game.MainGame.prototype = {
     create: function () {
+      console.log('maingame')
       this.stage.backgroundColor = '#3A5963'
+      // map = this.add.tilemap('ruinTilemap', 16, 16)
+      // map.addTilesetImage('ruinTileset')
+      // layer = map.createLayer(0)
+      // layer.resizeWorld()
     },
     update: function () {
 
