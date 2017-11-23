@@ -7,18 +7,16 @@
   import 'pixi'
   import 'p2'
   import Phaser from 'phaser'
-<<<<<<< HEAD
-  var ruinTileset = require('../assets/classical_ruin_tiles.png')
-  console.log(ruinTileset)
-  var ruinTilemap = require('../assets/tester.csv')
-  console.log(ruinTilemap)
+  var ruinTiles = require('../assets/classical_ruin_tiles.png')
+  var testerCsv = require('../assets/tester.csv')
+  var bear = require('../assets/bear.png')
+
   var map
   var layer
-/* eslint-enable no-unused-vars */
-=======
-  import logo from '../assets/logo.png'
+  var player
+  var cursors
+  var scale
   /* eslint-enable no-unused-vars */
->>>>>>> 8aa2781b032efb3ff0dd0b86268240721a22615b
   var Game = {}
 
   Game.Boot = function (game) { }
@@ -43,13 +41,11 @@
     preload: function () {
       console.log('preload')
       this.time.advancedTiming = true
+      this.physics.startSystem(Phaser.Physics.ARCADE)
       // TODO: load assets
-<<<<<<< HEAD
-      this.load.image('ruinTileset', ruinTileset)
-      this.load.tilemap('ruinTilemap', '../assets/tester.csv', null, Phaser.Tilemap.CSV)
-=======
-      this.load.image('logo', logo)
->>>>>>> 8aa2781b032efb3ff0dd0b86268240721a22615b
+      this.load.image('tiles', ruinTiles)
+      this.load.image('bear', bear)
+      this.load.tilemap('map', testerCsv, null, Phaser.Tilemap.CSV)
     },
     create: function () {
       this.state.start('MainGame')
@@ -58,19 +54,59 @@
 
   Game.MainGame.prototype = {
     create: function () {
+      // init tilemap and layer
       console.log('maingame')
       this.stage.backgroundColor = '#3A5963'
-<<<<<<< HEAD
-      // map = this.add.tilemap('ruinTilemap', 16, 16)
-      // map.addTilesetImage('ruinTileset')
-      // layer = map.createLayer(0)
-      // layer.resizeWorld()
-=======
-      this.add.sprite(0, 0, 'logo')
->>>>>>> 8aa2781b032efb3ff0dd0b86268240721a22615b
+      map = this.add.tilemap('map', 16, 16)
+      map.addTilesetImage('tiles')
+      map.setCollisionBetween(0, 79)
+      layer = map.createLayer(0, 240, 240)
+      layer.fixedToCamera = false
+      var w = document.documentElement.clientWidth
+      var h = document.documentElement.clientHeight
+      scale = (w > h ? h / 240 : w / 240)
+      layer.setScale(scale)
+      layer.bottom = h
+
+      // init player
+      player = this.add.sprite(0, 0, 'bear')
+      player.scale.set(0.1 * scale)
+
+      // physics
+      this.physics.arcade.enable(player)
+      player.body.gravity.y = 400 * scale
+      player.body.collideWorldBounds = true
+
+      // init controls
+      cursors = this.input.keyboard.createCursorKeys()
+      var help = this.add.text(16, 16, 'Arrows to move', { font: '14px Arial', fill: '#ffffff' })
+      help.fixedToCamera = true
+
+      // scale everything if window is resized
+      window.addEventListener('resize', function () {
+        w = document.documentElement.clientWidth
+        h = document.documentElement.clientHeight
+        scale = (w > h ? h / 240 : w / 240)
+        layer.setScale(scale)
+        layer.bottom = h
+        player.body.gravity.y = 400 * scale
+        player.scale.set(0.1 * scale)
+      })
     },
     update: function () {
+      this.physics.arcade.collide(player, layer)
 
+      player.body.velocity.x = player.body.velocity.x * 0.9
+
+      if (cursors.left.isDown) {
+        player.body.velocity.x += -10 * scale
+      }
+      if (cursors.right.isDown) {
+        player.body.velocity.x += 10 * scale
+      }
+      if (cursors.up.isDown && player.body.onFloor()) {
+        player.body.velocity.y = -150 * scale
+      }
     }
   }
 
@@ -83,7 +119,7 @@
     },
     mounted () {
       if (this.game == null) {
-        this.game = new Phaser.Game({ renderer: Phaser.CANVAS, scaleMode: Phaser.ScaleManager.RESIZE })
+        this.game = new Phaser.Game({ renderer: Phaser.AUTO, scaleMode: Phaser.ScaleManager.RESIZE })
         this.game.state.add('Boot', Game.Boot)
         this.game.state.add('Preloader', Game.Preloader)
         this.game.state.add('MainGame', Game.MainGame)

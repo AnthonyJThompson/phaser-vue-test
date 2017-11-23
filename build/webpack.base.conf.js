@@ -64,6 +64,13 @@ module.exports = {
         }
       },
       {
+        test: /\.(csv)(\?.*)?$/,
+        loader: 'file-loader',
+        options: {
+          name: utils.assetsPath('misc/[name].[hash:7].[ext]')
+        }
+      },
+      {
         test: /\.(woff2?|eot|ttf|otf)(\?.*)?$/,
         loader: 'url-loader',
         options: {
