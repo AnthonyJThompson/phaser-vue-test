@@ -7,16 +7,30 @@
   import 'pixi'
   import 'p2'
   import Phaser from 'phaser'
-  var ruinTiles = require('../assets/classical_ruin_tiles.png')
+  var ruinTiles = require('../assets/newtile.png')
+  var bTiles = require('../assets/classical_ruin_tiles.png')
   var testerCsv = require('../assets/tester.csv')
-  var bear = require('../assets/bear.png')
+  var bCsv = require('../assets/background.csv')
+  var mario = require('../assets/mario.png')
+  var timer = require('../assets/time.png')
 
   var map
+  var bMap
   var layer
+  var bLayer
   var player
   var cursors
   var scale
+  var stepsDisplay
+  var steps = 0
+  var event
+  var eventtime = {
+    time: 360,
+    bar: {}
+  }
+  var paused = false
   /* eslint-enable no-unused-vars */
+
   var Game = {}
 
   Game.Boot = function (game) { }
@@ -42,10 +56,16 @@
       console.log('preload')
       this.time.advancedTiming = true
       this.physics.startSystem(Phaser.Physics.ARCADE)
+      this.world.setBounds(0, 0, 9600, 480)
+      this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL
+      this.scale.refresh()
       // TODO: load assets
       this.load.image('tiles', ruinTiles)
-      this.load.image('bear', bear)
+      this.load.image('bTiles', bTiles)
+      this.load.image('timer', timer)
+      this.load.spritesheet('mario', mario, 16, 28)
       this.load.tilemap('map', testerCsv, null, Phaser.Tilemap.CSV)
+      this.load.tilemap('bMap', bCsv, null, Phaser.Tilemap.CSV)
     },
     create: function () {
       this.state.start('MainGame')
@@ -57,56 +77,83 @@
       // init tilemap and layer
       console.log('maingame')
       this.stage.backgroundColor = '#3A5963'
-      map = this.add.tilemap('map', 16, 16)
+      bMap = this.add.tilemap('bMap', 32, 32)
+      bMap.addTilesetImage('bTiles')
+      bLayer = bMap.createLayer(0, 9600, 480)
+
+      map = this.add.tilemap('map', 96, 96)
       map.addTilesetImage('tiles')
-      map.setCollisionBetween(0, 79)
-      layer = map.createLayer(0, 240, 240)
-      layer.fixedToCamera = false
-      var w = document.documentElement.clientWidth
-      var h = document.documentElement.clientHeight
-      scale = (w > h ? h / 240 : w / 240)
-      layer.setScale(scale)
-      layer.bottom = h
+      map.setCollision([0])
+      layer = map.createLayer(0, 9600, 480)
 
       // init player
-      player = this.add.sprite(0, 0, 'bear')
-      player.scale.set(0.1 * scale)
+      player = this.add.sprite(1000, 360, 'mario')
+      player.animations.add('idle', [0], 1, false)
+      player.animations.add('run', [3, 4], 20, true)
+      player.animations.play('idle')
+      player.anchor.set(0.5)
+      this.camera.follow(player)
 
       // physics
       this.physics.arcade.enable(player)
-      player.body.gravity.y = 400 * scale
-      player.body.collideWorldBounds = true
+      player.body.onCollide = new Phaser.Signal()
+      player.body.onCollide.add(this.startMiniGame, this)
+      player.body.gravity.y = 400
 
       // init controls
       cursors = this.input.keyboard.createCursorKeys()
-      var help = this.add.text(16, 16, 'Arrows to move', { font: '14px Arial', fill: '#ffffff' })
+      this.inputEnabled = true
+
+      var help = this.add.text(16, 16, 'right arrow or click to move', { font: '12px Arial', fill: '#ffffff' })
       help.fixedToCamera = true
 
-      // scale everything if window is resized
-      window.addEventListener('resize', function () {
-        w = document.documentElement.clientWidth
-        h = document.documentElement.clientHeight
-        scale = (w > h ? h / 240 : w / 240)
-        layer.setScale(scale)
-        layer.bottom = h
-        player.body.gravity.y = 400 * scale
-        player.scale.set(0.1 * scale)
-      })
+      stepsDisplay = this.add.text(16, 32, 'Steps:', { font: '12px Arial', fill: '#ffffff' })
+      stepsDisplay.fixedToCamera = true
+
+      eventtime.bar = this.add.sprite(60, 60, 'timer')
+      eventtime.bar.anchor.set(0.5)
+      eventtime.bar.width = eventtime.time / 360 * 100
+      eventtime.bar.fixedToCamera = true
     },
     update: function () {
       this.physics.arcade.collide(player, layer)
+      this.physics.arcade.collide(player, event)
 
-      player.body.velocity.x = player.body.velocity.x * 0.9
+      player.body.velocity.x = 0
 
-      if (cursors.left.isDown) {
-        player.body.velocity.x += -10 * scale
+      if (!paused) {
+        if (cursors.right.isDown || this.input.activePointer.isDown) {
+          player.body.velocity.x = 100
+          player.animations.play('run')
+
+          steps = steps + 0.1
+          stepsDisplay.text = 'Steps: ' + Math.round(steps)
+
+          if (Math.round(steps) % 50 === 0) {
+            steps = 1
+            // separate to method
+            event = this.add.sprite(player.x + 400, 370, 'mario')
+            event.anchor.set(0.5)
+            this.physics.arcade.enable(event)
+          }
+        } else {
+          player.animations.play('idle')
+        }
+      } else {
+        eventtime.time--
+        eventtime.bar.width = eventtime.time / 360 * 100
+        if (eventtime.time <= 0) {
+          paused = false
+          eventtime.time = 360
+          event.destroy()
+        }
       }
-      if (cursors.right.isDown) {
-        player.body.velocity.x += 10 * scale
-      }
-      if (cursors.up.isDown && player.body.onFloor()) {
-        player.body.velocity.y = -150 * scale
-      }
+
+      this.world.wrap(player, -960, false, true, false)
+    },
+    startMiniGame: function () {
+      paused = true
+      event.body.velocity.x = 0
     }
   }
 
@@ -119,7 +166,8 @@
     },
     mounted () {
       if (this.game == null) {
-        this.game = new Phaser.Game({ renderer: Phaser.AUTO, scaleMode: Phaser.ScaleManager.RESIZE })
+        var gameRatio = this.canvasWidth / this.canvasHeight
+        this.game = new Phaser.Game({ width: 241 * gameRatio, height: 241, renderer: Phaser.AUTO })
         this.game.state.add('Boot', Game.Boot)
         this.game.state.add('Preloader', Game.Preloader)
         this.game.state.add('MainGame', Game.MainGame)
